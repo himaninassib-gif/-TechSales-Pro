@@ -3152,4 +3152,229 @@ function gdriveInit() {
   if (savedScope !== 'drive') {
     gdriveToken = null;
     localStorage.removeItem('gdrive_token');
-    localStorage.se
+    localStorage.setItem('gdrive_scope', 'drive');
+  }
+  if (gdriveToken) {
+    updateGdriveUI(true);
+  }
+  if (autoBackupEnabled) {
+    const toggle = document.getElementById('autoBackupToggle');
+    if (toggle) toggle.classList.add('on');
+  }
+  const lastBackup = localStorage.getItem('gdrive_last_backup');
+  if (lastBackup) {
+    const el = document.getElementById('gdrive-last-backup');
+    if (el) el.textContent = 'آخر نسخة: ' + new Date(lastBackup).toLocaleString('ar-DZ');
+  }
+}
+
+function updateGdriveUI(connected) {
+  const label = document.getElementById('gdrive-status-label');
+  const desc = document.getElementById('gdrive-status-desc');
+  const arrow = document.getElementById('gdrive-arrow');
+  const item = document.getElementById('gdrive-connect-item');
+  if (!label) return;
+  if (connected) {
+    label.textContent = '✅ Google Drive مرتبط';
+    label.style.color = 'var(--accent3)';
+    desc.textContent = 'اضغط لقطع الاتصال';
+    arrow.textContent = '✕';
+    item.onclick = gdriveLogout;
+  } else {
+    label.textContent = 'ربط Google Drive';
+    label.style.color = '';
+    desc.textContent = 'اضغط لتسجيل الدخول بحساب Google';
+    arrow.textContent = '›';
+    item.onclick = gdriveLogin;
+  }
+}
+
+function gdriveLogin() {
+  if (GDRIVE_CLIENT_ID === 'YOUR_CLIENT_ID') {
+    showToast('❌ يرجى إضافة Client ID أولاً', true);
+    return;
+  }
+  const redirectUri = 'https://techsales-pro.netlify.app/';
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${encodeURIComponent(GDRIVE_CLIENT_ID)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=token` +
+    `&scope=${encodeURIComponent(GDRIVE_SCOPE)}` +
+    `&prompt=select_account`;
+  window.location.href = authUrl;
+}
+
+function gdriveLogout() {
+  gdriveToken = null;
+  localStorage.removeItem('gdrive_token');
+  updateGdriveUI(false);
+  showToast('🔌 تم قطع الاتصال بـ Google Drive');
+}
+
+function toggleAutoBackup(el) {
+  autoBackupEnabled = !autoBackupEnabled;
+  el.classList.toggle('on', autoBackupEnabled);
+  localStorage.setItem('gdrive_auto', autoBackupEnabled);
+  showToast(autoBackupEnabled ? '✅ النسخ التلقائي مفعّل' : '⏸️ النسخ التلقائي موقوف');
+}
+
+async function gdriveBackupNow() {
+  if (!gdriveToken) {
+    showToast('⚠️ يرجى ربط Google Drive أولاً', true);
+    return;
+  }
+  showToast('☁️ جاري الحفظ على Drive...');
+  try {
+    const data = JSON.stringify({ version: '1.1', date: new Date().toISOString(), sales, inventory }, null, 2);
+
+    // Search for existing file
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_BACKUP_FILENAME}'+and+trashed=false&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const searchData = await searchRes.json();
+    if (searchData.error) { handleGdriveError(searchData.error); return; }
+
+    const fileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
+    let res;
+
+    if (fileId) {
+      // Update existing file content only
+      res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${gdriveToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: data
+      });
+    } else {
+      // Create new file with multipart
+      const boundary = 'techsales_boundary';
+      const meta = JSON.stringify({ name: GDRIVE_BACKUP_FILENAME, mimeType: 'application/json' });
+      const body =
+        `--${boundary}\r\n` +
+        `Content-Type: application/json\r\n\r\n` +
+        `${meta}\r\n` +
+        `--${boundary}\r\n` +
+        `Content-Type: application/json\r\n\r\n` +
+        `${data}\r\n` +
+        `--${boundary}--`;
+
+      res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${gdriveToken}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`
+        },
+        body
+      });
+    }
+
+    if (res.ok) {
+      const now = new Date().toISOString();
+      localStorage.setItem('gdrive_last_backup', now);
+      const el = document.getElementById('gdrive-last-backup');
+      if (el) el.textContent = 'آخر نسخة: ' + new Date(now).toLocaleString('ar-DZ');
+      showToast('✅ تم الحفظ على Google Drive!');
+    } else {
+      const err = await res.json();
+      handleGdriveError(err.error);
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('❌ فشل الاتصال بـ Drive: ' + e.message, true);
+  }
+}
+
+async function gdriveRestore() {
+  if (!gdriveToken) {
+    showToast('⚠️ يرجى ربط Google Drive أولاً', true);
+    return;
+  }
+  showToast('🔄 جاري البحث عن النسخة الاحتياطية...');
+  try {
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_BACKUP_FILENAME}'+and+trashed=false&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const searchData = await searchRes.json();
+    if (searchData.error) { handleGdriveError(searchData.error); return; }
+    if (!searchData.files || searchData.files.length === 0) {
+      showToast('❌ لا توجد نسخة احتياطية في Drive', true);
+      return;
+    }
+    const fileId = searchData.files[0].id;
+    const fileRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const restored = await fileRes.json();
+    if (restored.sales) {
+      sales = restored.sales;
+      saveData();
+      if (restored.inventory) { inventory = restored.inventory; saveInventory(); }
+      renderDashboard();
+      showToast(`✅ تمت الاستعادة! ${sales.length} مبيعة و ${inventory.length} صنف`);
+    } else {
+      showToast('❌ ملف النسخة الاحتياطية تالف', true);
+    }
+  } catch (e) {
+    console.error(e);
+    showToast('❌ فشل الاتصال بـ Drive: ' + e.message, true);
+  }
+}
+
+function handleGdriveError(err) {
+  if (err && err.code === 401) {
+    gdriveToken = null;
+    localStorage.removeItem('gdrive_token');
+    updateGdriveUI(false);
+    showToast('⚠️ انتهت صلاحية الجلسة — يرجى تسجيل الدخول مجدداً', true);
+  } else {
+    showToast('❌ خطأ في Drive: ' + (err?.message || 'غير معروف'), true);
+  }
+}
+
+// Handle OAuth redirect token
+function handleOAuthRedirect() {
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const token = params.get('access_token');
+    if (token) {
+      gdriveToken = token;
+      localStorage.setItem('gdrive_token', token);
+      // Clean URL
+      history.replaceState(null, '', window.location.pathname);
+      updateGdriveUI(true);
+      showToast('✅ تم ربط Google Drive بنجاح!');
+      // Auto backup after connect
+      setTimeout(() => gdriveBackupNow(), 1000);
+    }
+  }
+}
+
+// Auto backup wrapper — called after save operations
+function autoBackup() {
+  if (autoBackupEnabled && gdriveToken) {
+    setTimeout(() => gdriveBackupNow(), 500);
+  }
+}
+
+handleOAuthRedirect();
+gdriveInit();
+fingerprintInit();
+</script>
+
+<!-- Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
