@@ -1374,7 +1374,12 @@
       </div>
 
       <!-- Customer Info -->
-      <div class="section-title">👤 معلومات العميل</div>
+      <div class="section-title">👤 معلومات العميل والبائع</div>
+
+      <div class="form-group">
+        <div class="form-label">🧑‍💼 اسم البائع</div>
+        <input type="text" class="form-input" id="f-seller" placeholder="اسم الموظف الذي قام بالبيع" readonly style="background:rgba(0,212,255,0.05);color:var(--accent)">
+      </div>
 
       <div class="form-group">
         <div class="form-label">👤 اسم العميل</div>
@@ -1531,6 +1536,14 @@
 
       <div class="section-title">🔒 الأمان</div>
       <div class="settings-group">
+        <div class="settings-item" onclick="changeUsername()">
+          <div class="settings-icon">👤</div>
+          <div class="settings-info">
+            <div class="settings-label">اسم المستخدم</div>
+            <div class="settings-desc" id="usernameDesc">غير محدد</div>
+          </div>
+          <div class="settings-arrow">›</div>
+        </div>
         <div class="settings-item" onclick="changePassword()">
           <div class="settings-icon">🔑</div>
           <div class="settings-info">
@@ -1552,6 +1565,26 @@
           <div class="settings-info">
             <div class="settings-label">قفل التطبيق</div>
             <div class="settings-desc">العودة لشاشة كلمة السر</div>
+          </div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="section-title">🖨️ الطابعة</div>
+      <div class="settings-group">
+        <div class="settings-item" onclick="connectPrinter()">
+          <div class="settings-icon">🖨️</div>
+          <div class="settings-info">
+            <div class="settings-label">ربط الطابعة</div>
+            <div class="settings-desc" id="printerDesc">لا توجد طابعة مربوطة</div>
+          </div>
+          <div class="settings-arrow" id="printerArrow">›</div>
+        </div>
+        <div class="settings-item" onclick="testPrint()">
+          <div class="settings-icon">🖨️</div>
+          <div class="settings-info">
+            <div class="settings-label">طباعة تجريبية</div>
+            <div class="settings-desc">اختبار الطابعة المربوطة</div>
           </div>
           <div class="settings-arrow">›</div>
         </div>
@@ -2238,6 +2271,100 @@ function updateDate() {
   document.getElementById('topbarDate').textContent = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
 }
 updateDate();
+
+// ===== USERNAME =====
+let currentUsername = localStorage.getItem('techsales_username') || '';
+
+function initUsername() {
+  const desc = document.getElementById('usernameDesc');
+  if (desc) desc.textContent = currentUsername || 'غير محدد';
+  const sellerField = document.getElementById('f-seller');
+  if (sellerField) sellerField.value = currentUsername || '';
+}
+
+function changeUsername() {
+  const name = prompt('أدخل اسم المستخدم:', currentUsername);
+  if (name === null) return;
+  if (!name.trim()) { showToast('❌ أدخل اسماً صحيحاً', true); return; }
+  currentUsername = name.trim();
+  localStorage.setItem('techsales_username', currentUsername);
+  document.getElementById('usernameDesc').textContent = currentUsername;
+  const sellerField = document.getElementById('f-seller');
+  if (sellerField) sellerField.value = currentUsername;
+  showToast('✅ تم حفظ اسم المستخدم: ' + currentUsername);
+}
+
+// ===== PRINTER =====
+let printerConnected = false;
+
+function initPrinter() {
+  const saved = localStorage.getItem('techsales_printer');
+  if (saved) {
+    printerConnected = true;
+    const desc = document.getElementById('printerDesc');
+    if (desc) desc.textContent = '✅ ' + saved;
+  }
+}
+
+async function connectPrinter() {
+  if (printerConnected) {
+    if (confirm('هل تريد إلغاء ربط الطابعة الحالية؟')) {
+      printerConnected = false;
+      localStorage.removeItem('techsales_printer');
+      document.getElementById('printerDesc').textContent = 'لا توجد طابعة مربوطة';
+      showToast('🔌 تم إلغاء ربط الطابعة');
+    }
+    return;
+  }
+
+  // Try Web Bluetooth for wireless printers or use window.print
+  try {
+    if ('bluetooth' in navigator) {
+      showToast('🔍 جاري البحث عن الطابعات...');
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
+        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+      });
+      printerConnected = true;
+      localStorage.setItem('techsales_printer', device.name || 'طابعة بلوتوث');
+      document.getElementById('printerDesc').textContent = '✅ ' + (device.name || 'طابعة بلوتوث');
+      showToast('✅ تم ربط الطابعة: ' + (device.name || 'طابعة بلوتوث'));
+    } else {
+      // Fallback: use system print dialog
+      printerConnected = true;
+      localStorage.setItem('techsales_printer', 'طابعة النظام');
+      document.getElementById('printerDesc').textContent = '✅ طابعة النظام';
+      showToast('✅ تم ربط طابعة النظام — ستُستخدم عند طباعة الفواتير');
+    }
+  } catch(e) {
+    // Use system printer as fallback
+    printerConnected = true;
+    localStorage.setItem('techsales_printer', 'طابعة النظام');
+    document.getElementById('printerDesc').textContent = '✅ طابعة النظام';
+    showToast('✅ تم ربط طابعة النظام');
+  }
+}
+
+function testPrint() {
+  if (!printerConnected) {
+    showToast('⚠️ يرجى ربط الطابعة أولاً', true);
+    return;
+  }
+  const win = window.open('', '_blank', 'width=400,height=300');
+  if (win) {
+    win.document.write(`
+      <html dir="rtl"><head><title>طباعة تجريبية</title>
+      <style>body{font-family:Arial;text-align:center;padding:20px}</style></head>
+      <body>
+        <h2>TechSales Pro</h2>
+        <p>طباعة تجريبية ✅</p>
+        <p>الطابعة تعمل بشكل صحيح</p>
+        <p>${new Date().toLocaleString('ar-DZ')}</p>
+        <script>window.onload=()=>{window.print();window.close()}</script>
+      </body></html>`);
+    win.document.close();
+  }
+}
 
 // ===== EDIT SALE =====
 let editingSaleId = null;
@@ -3075,6 +3202,7 @@ function saveSale() {
   const sell = parseFloat(document.getElementById('f-sell').value) || 0;
   const repair = parseFloat(document.getElementById('f-repair').value) || 0;
   const shipping = parseFloat(document.getElementById('f-shipping').value) || 0;
+  const seller = document.getElementById('f-seller').value.trim() || currentUsername || '';
   const customer = document.getElementById('f-customer').value.trim();
   const phone = document.getElementById('f-phone').value.trim();
   const payment = document.getElementById('f-payment').value;
@@ -3101,6 +3229,7 @@ function saveSale() {
     invId: selectedInvId || null,
     prices: { buy, sell, repair, shipping, cost, profit, margin },
     customer: { name: customer, phone },
+    seller,
     payment, notes
   };
 
@@ -3247,6 +3376,7 @@ function renderList() {
           </div>
           ${s.customer?.name ? `<div class="detail-item"><div class="detail-label">العميل</div><div class="detail-value">${s.customer.name}</div></div>` : ''}
           ${s.customer?.phone ? `<div class="detail-item"><div class="detail-label">الهاتف</div><div class="detail-value" style="direction:ltr">${s.customer.phone}</div></div>` : ''}
+          ${s.seller ? `<div class="detail-item"><div class="detail-label">🧑‍💼 البائع</div><div class="detail-value" style="color:var(--accent)">${s.seller}</div></div>` : ''}
         </div>
         ${s.notes ? `<div style="margin-top:10px;padding:10px;background:var(--bg-card2);border-radius:var(--radius-sm);font-size:12px;color:var(--text-secondary)">📝 ${s.notes}</div>` : ''}
         <div class="card-actions">
@@ -3403,6 +3533,7 @@ function printInvoice(id) {
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;margin-bottom:24px">
     <div>
       <div class="section-title">طريقة الدفع</div>
+      ${s.seller ? `<div style="margin-top:8px;font-size:12px;color:#666">🧑‍💼 البائع: <strong>${s.seller}</strong></div>` : ''}
       <div class="payment-badge">💳 ${s.payment}</div>
       ${s.notes ? `<div style="margin-top:12px;font-size:13px;color:#666">📝 ${s.notes}</div>` : ''}
     </div>
@@ -3795,541 +3926,4 @@ function handleImport(input) {
         sales = data.sales;
         saveData();
         if (data.inventory && Array.isArray(data.inventory)) {
-          inventory = data.inventory;
-          saveInventory();
-        }
-        showToast(`✅ تم استيراد ${sales.length} مبيعة و ${inventory.length} صنف`);
-        renderDashboard();
-      } else {
-        showToast('❌ ملف غير صالح', true);
-      }
-    } catch {
-      showToast('❌ خطأ في قراءة الملف', true);
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
-}
-
-function confirmClear() {
-  if (confirm('⚠️ هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع!')) {
-    sales = [];
-    saveData();
-    renderDashboard();
-    showToast('🗑️ تم مسح جميع البيانات');
-  }
-}
-
-function updateStorageInfo() {
-  document.getElementById('storageInfo').textContent = `${sales.length} مبيعة · ${inventory.length} صنف في المخزون`;
-}
-
-// ===== PWA INSTALL =====
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  showInstallBanner();
-});
-
-function showInstallBanner() {
-  const c = document.getElementById('installBannerContainer');
-  c.innerHTML = `
-    <div class="install-banner">
-      <div style="font-size:28px">📲</div>
-      <div class="install-banner-text">
-        <strong>ثبّت التطبيق!</strong>
-        احصل على تجربة أفضل بتثبيت التطبيق على هاتفك
-      </div>
-      <button class="btn-install" onclick="triggerInstall()">تثبيت</button>
-    </div>
-  `;
-}
-
-async function triggerInstall() {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      showToast('✅ جاري التثبيت...');
-    }
-    deferredPrompt = null;
-    document.getElementById('installBannerContainer').innerHTML = '';
-  } else {
-    showInstallGuide();
-  }
-}
-
-// ===== INVENTORY =====
-function renderInventory() {
-  let items = [...inventory];
-
-  if (currentInvFilter === 'low') items = items.filter(i => i.qty > 0 && i.qty < (i.alert || 3));
-  else if (currentInvFilter === 'empty') items = items.filter(i => i.qty === 0);
-  else if (currentInvFilter !== 'all') items = items.filter(i => i.type === currentInvFilter);
-
-  if (currentInvSearch) {
-    const q = currentInvSearch.toLowerCase();
-    items = items.filter(i => i.name.toLowerCase().includes(q) || (i.brand||'').toLowerCase().includes(q));
-  }
-
-  // KPIs
-  const totalQty = inventory.reduce((s, i) => s + (i.qty || 0), 0);
-  const lowCount = inventory.filter(i => i.qty < (i.alert || 3)).length;
-  document.getElementById('inv-total').textContent = inventory.length;
-  document.getElementById('inv-qty').textContent = totalQty;
-  document.getElementById('inv-low').textContent = lowCount;
-  document.getElementById('invSubtitle').textContent = `${items.length} منتج`;
-
-  // Low stock alert banner
-  const lowItems = inventory.filter(i => i.qty === 0);
-  const banner = document.getElementById('lowStockBanner');
-  if (lowItems.length) {
-    banner.innerHTML = `<div class="alert-banner">
-      <span style="font-size:24px">🚨</span>
-      <div class="alert-banner-text">
-        <strong>${lowItems.length} منتج نفد من المخزون!</strong>
-        ${lowItems.slice(0,2).map(i => i.name).join('، ')}${lowItems.length > 2 ? '...' : ''}
-      </div>
-    </div>`;
-  } else {
-    banner.innerHTML = '';
-  }
-
-  const container = document.getElementById('invListContainer');
-  if (!items.length) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">${inventory.length ? 'لا توجد نتائج' : 'المخزون فارغ\nاضغط "+ إضافة" لإضافة منتج'}</div></div>`;
-    return;
-  }
-
-  container.innerHTML = items.map(item => {
-    const qtyClass = item.qty === 0 ? 'empty' : item.qty < (item.alert || 3) ? 'low' : 'ok';
-    const qtyLabel = item.qty === 0 ? 'نفد!' : item.qty < (item.alert||3) ? 'منخفض' : 'متوفر';
-    const totalVal = (item.buyPrice || 0) * item.qty;
-    return `
-    <div class="inv-item" id="invcard-${item.id}">
-      <div class="inv-item-header" onclick="toggleInvCard('${item.id}')">
-        <div class="inv-avatar">${typeEmoji(item.type)}</div>
-        <div class="inv-info">
-          <div class="inv-name">${item.name}</div>
-          <div class="inv-meta">${item.brand || ''} ${item.specs ? '· ' + item.specs : ''}</div>
-          ${item.sellPrice ? `<div class="inv-meta" style="color:var(--accent)">بيع: ${fmt(item.sellPrice)} دج</div>` : ''}
-        </div>
-        <div class="inv-qty-badge">
-          <div class="qty-circle ${qtyClass}">${item.qty}</div>
-          <div class="qty-label">${qtyLabel}</div>
-        </div>
-      </div>
-      <div class="inv-body" id="invbody-${item.id}">
-        ${item.qty < (item.alert||3) && item.qty > 0 ? `<div class="low-stock-alert">⚠️ الكمية منخفضة — حد التنبيه: ${item.alert||3}</div>` : ''}
-        ${item.qty === 0 ? `<div class="low-stock-alert" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:var(--accent-red)">🚨 هذا المنتج نفد من المخزون!</div>` : ''}
-
-        <!-- Quantity controls -->
-        <div class="qty-controls">
-          <button class="qty-btn minus" onclick="changeQty('${item.id}',-1)">−</button>
-          <div class="qty-display" id="qdisplay-${item.id}">${item.qty}</div>
-          <button class="qty-btn plus" onclick="changeQty('${item.id}',+1)">+</button>
-        </div>
-
-        <div class="detail-grid" style="padding-top:8px">
-          ${item.buyPrice ? `<div class="detail-item"><div class="detail-label">سعر الشراء</div><div class="detail-value">${fmt(item.buyPrice)} دج</div></div>` : ''}
-          ${item.sellPrice ? `<div class="detail-item"><div class="detail-label">سعر البيع</div><div class="detail-value" style="color:var(--accent)">${fmt(item.sellPrice)} دج</div></div>` : ''}
-          ${item.buyPrice ? `<div class="detail-item"><div class="detail-label">قيمة المخزون</div><div class="detail-value" style="color:var(--accent-yellow)">${fmt(totalVal)} دج</div></div>` : ''}
-          <div class="detail-item"><div class="detail-label">حد التنبيه</div><div class="detail-value">${item.alert || 3} قطع</div></div>
-        </div>
-        ${item.notes ? `<div style="margin-top:10px;padding:10px;background:var(--bg-card2);border-radius:var(--radius-sm);font-size:12px;color:var(--text-secondary)">📝 ${item.notes}</div>` : ''}
-
-        <div class="card-actions">
-          <button class="btn-icon" onclick="openEditInventory('${item.id}')">✏️ تعديل</button>
-          <button class="btn-icon" onclick="sellFromInventory('${item.id}')">💰 بيع</button>
-          <button class="btn-icon danger" onclick="deleteInvItem('${item.id}')">🗑️</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function toggleInvCard(id) {
-  document.getElementById('invbody-' + id).classList.toggle('open');
-}
-
-function changeQty(id, delta) {
-  const idx = inventory.findIndex(i => i.id === id);
-  if (idx === -1) return;
-  inventory[idx].qty = Math.max(0, (inventory[idx].qty || 0) + delta);
-  saveInventory();
-  // Update display inline without full re-render
-  const item = inventory[idx];
-  const qtyClass = item.qty === 0 ? 'empty' : item.qty < (item.alert || 3) ? 'low' : 'ok';
-  const qtyLabel = item.qty === 0 ? 'نفد!' : item.qty < (item.alert||3) ? 'منخفض' : 'متوفر';
-  const circle = document.querySelector(`#invcard-${id} .qty-circle`);
-  const label = document.querySelector(`#invcard-${id} .qty-label`);
-  const display = document.getElementById('qdisplay-' + id);
-  if (circle) { circle.className = `qty-circle ${qtyClass}`; circle.textContent = item.qty; }
-  if (label) label.textContent = qtyLabel;
-  if (display) display.textContent = item.qty;
-  // Update KPIs
-  const totalQty = inventory.reduce((s, i) => s + (i.qty || 0), 0);
-  const lowCount = inventory.filter(i => i.qty < (i.alert || 3)).length;
-  document.getElementById('inv-qty').textContent = totalQty;
-  document.getElementById('inv-low').textContent = lowCount;
-}
-
-function openAddInventory() {
-  editingInvId = null;
-  document.getElementById('addInvTitle').textContent = '📦 إضافة منتج للمخزون';
-  ['inv-name','inv-brand','inv-qty-input','inv-alert','inv-buy-price','inv-sell-price','inv-specs','inv-notes'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  document.getElementById('inv-type').value = 'لابتوب';
-  document.getElementById('addInvModal').classList.add('open');
-}
-
-function openEditInventory(id) {
-  const item = inventory.find(i => i.id === id);
-  if (!item) return;
-  editingInvId = id;
-  document.getElementById('addInvTitle').textContent = '✏️ تعديل المنتج';
-  document.getElementById('inv-name').value = item.name || '';
-  document.getElementById('inv-type').value = item.type || 'لابتوب';
-  document.getElementById('inv-brand').value = item.brand || '';
-  document.getElementById('inv-qty-input').value = item.qty || 0;
-  document.getElementById('inv-alert').value = item.alert || 3;
-  document.getElementById('inv-buy-price').value = item.buyPrice || '';
-  document.getElementById('inv-sell-price').value = item.sellPrice || '';
-  document.getElementById('inv-specs').value = item.specs || '';
-  document.getElementById('inv-notes').value = item.notes || '';
-  document.getElementById('addInvModal').classList.add('open');
-}
-
-function saveInventoryItem() {
-  const name = document.getElementById('inv-name').value.trim();
-  if (!name) { showToast('❌ أدخل اسم المنتج', true); return; }
-
-  const item = {
-    id: editingInvId || generateId(),
-    name,
-    type: document.getElementById('inv-type').value,
-    brand: document.getElementById('inv-brand').value,
-    qty: parseInt(document.getElementById('inv-qty-input').value) || 0,
-    alert: parseInt(document.getElementById('inv-alert').value) || 3,
-    buyPrice: parseFloat(document.getElementById('inv-buy-price').value) || 0,
-    sellPrice: parseFloat(document.getElementById('inv-sell-price').value) || 0,
-    specs: document.getElementById('inv-specs').value.trim(),
-    notes: document.getElementById('inv-notes').value.trim(),
-    updatedAt: new Date().toISOString()
-  };
-
-  if (editingInvId) {
-    const idx = inventory.findIndex(i => i.id === editingInvId);
-    if (idx !== -1) inventory[idx] = item;
-    showToast('✅ تم تحديث المنتج');
-  } else {
-    item.createdAt = new Date().toISOString();
-    inventory.unshift(item);
-    showToast('✅ تمت إضافة المنتج للمخزون');
-  }
-
-  saveInventory();
-  closeModal('addInvModal');
-  renderInventory();
-  autoBackup();
-}
-
-function deleteInvItem(id) {
-  pendingDeleteInvId = id;
-  document.getElementById('deleteInvModal').classList.add('open');
-}
-
-function confirmDeleteInv() {
-  if (pendingDeleteInvId) {
-    inventory = inventory.filter(i => i.id !== pendingDeleteInvId);
-    saveInventory();
-    closeModal('deleteInvModal');
-    renderInventory();
-    showToast('🗑️ تم الحذف من المخزون');
-    pendingDeleteInvId = null;
-  }
-}
-
-function sellFromInventory(id) {
-  const item = inventory.find(i => i.id === id);
-  if (!item) return;
-  if (item.qty <= 0) { showToast('❌ هذا المنتج نفد من المخزون!', true); return; }
-  // Pre-fill add sale form and go there
-  document.getElementById('f-name').value = item.name;
-  document.getElementById('f-type').value = item.type || '';
-  document.getElementById('f-brand').value = item.brand || '';
-  if (item.buyPrice) document.getElementById('f-buy').value = item.buyPrice;
-  if (item.sellPrice) document.getElementById('f-sell').value = item.sellPrice;
-  if (item.specs) document.getElementById('f-cpu').value = item.specs;
-  calcProfit();
-  // Reduce inventory qty by 1
-  const idx = inventory.findIndex(i => i.id === id);
-  inventory[idx].qty = Math.max(0, inventory[idx].qty - 1);
-  saveInventory();
-  closeModal('addInvModal');
-  // Navigate to add page
-  const addBtn = document.querySelectorAll('.nav-btn')[1];
-  switchPage('add', addBtn);
-  showToast(`💰 تم تحميل بيانات ${item.name} — أكمل بيانات البيع`);
-}
-
-function filterInventory(filter, el) {
-  currentInvFilter = filter;
-  document.querySelectorAll('.filter-bar .filter-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  renderInventory();
-}
-
-function searchInventory(q) {
-  currentInvSearch = q;
-  renderInventory();
-}
-
-// ===== INIT =====
-renderDashboard();
-calcProfit();
-
-// ===== GOOGLE DRIVE BACKUP =====
-const GDRIVE_CLIENT_ID = '23364702878-vou1jt9dje85a2bk7eg21mfo11rd5cgj.apps.googleusercontent.com';
-const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
-const GDRIVE_BACKUP_FILENAME = 'techsales_backup.json';
-let gdriveToken = localStorage.getItem('gdrive_token') || null;
-let autoBackupEnabled = localStorage.getItem('gdrive_auto') === 'true';
-
-function gdriveInit() {
-  // Clear old token to force re-login with new scope
-  const savedScope = localStorage.getItem('gdrive_scope');
-  if (savedScope !== 'drive') {
-    gdriveToken = null;
-    localStorage.removeItem('gdrive_token');
-    localStorage.setItem('gdrive_scope', 'drive');
-  }
-  if (gdriveToken) {
-    updateGdriveUI(true);
-  }
-  if (autoBackupEnabled) {
-    const toggle = document.getElementById('autoBackupToggle');
-    if (toggle) toggle.classList.add('on');
-  }
-  const lastBackup = localStorage.getItem('gdrive_last_backup');
-  if (lastBackup) {
-    const el = document.getElementById('gdrive-last-backup');
-    if (el) el.textContent = 'آخر نسخة: ' + new Date(lastBackup).toLocaleString('ar-DZ');
-  }
-}
-
-function updateGdriveUI(connected) {
-  const label = document.getElementById('gdrive-status-label');
-  const desc = document.getElementById('gdrive-status-desc');
-  const arrow = document.getElementById('gdrive-arrow');
-  const item = document.getElementById('gdrive-connect-item');
-  if (!label) return;
-  if (connected) {
-    label.textContent = '✅ Google Drive مرتبط';
-    label.style.color = 'var(--accent3)';
-    desc.textContent = 'اضغط لقطع الاتصال';
-    arrow.textContent = '✕';
-    item.onclick = gdriveLogout;
-  } else {
-    label.textContent = 'ربط Google Drive';
-    label.style.color = '';
-    desc.textContent = 'اضغط لتسجيل الدخول بحساب Google';
-    arrow.textContent = '›';
-    item.onclick = gdriveLogin;
-  }
-}
-
-function gdriveLogin() {
-  if (GDRIVE_CLIENT_ID === 'YOUR_CLIENT_ID') {
-    showToast('❌ يرجى إضافة Client ID أولاً', true);
-    return;
-  }
-  const redirectUri = window.location.origin + window.location.pathname;
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-    `client_id=${encodeURIComponent(GDRIVE_CLIENT_ID)}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&response_type=token` +
-    `&scope=${encodeURIComponent(GDRIVE_SCOPE)}` +
-    `&prompt=select_account`;
-  window.location.href = authUrl;
-}
-
-function gdriveLogout() {
-  gdriveToken = null;
-  localStorage.removeItem('gdrive_token');
-  updateGdriveUI(false);
-  showToast('🔌 تم قطع الاتصال بـ Google Drive');
-}
-
-function toggleAutoBackup(el) {
-  autoBackupEnabled = !autoBackupEnabled;
-  el.classList.toggle('on', autoBackupEnabled);
-  localStorage.setItem('gdrive_auto', autoBackupEnabled);
-  showToast(autoBackupEnabled ? '✅ النسخ التلقائي مفعّل' : '⏸️ النسخ التلقائي موقوف');
-}
-
-async function gdriveBackupNow() {
-  if (!gdriveToken) {
-    showToast('⚠️ يرجى ربط Google Drive أولاً', true);
-    return;
-  }
-  showToast('☁️ جاري الحفظ على Drive...');
-  try {
-    const data = JSON.stringify({ version: '1.1', date: new Date().toISOString(), sales, inventory }, null, 2);
-
-    // Search for existing file
-    const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_BACKUP_FILENAME}'+and+trashed=false&fields=files(id,name)`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } }
-    );
-    const searchData = await searchRes.json();
-    if (searchData.error) { handleGdriveError(searchData.error); return; }
-
-    const fileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
-    let res;
-
-    if (fileId) {
-      // Update existing file content only
-      res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${gdriveToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: data
-      });
-    } else {
-      // Create new file with multipart
-      const boundary = 'techsales_boundary';
-      const meta = JSON.stringify({ name: GDRIVE_BACKUP_FILENAME, mimeType: 'application/json' });
-      const body =
-        `--${boundary}\r\n` +
-        `Content-Type: application/json\r\n\r\n` +
-        `${meta}\r\n` +
-        `--${boundary}\r\n` +
-        `Content-Type: application/json\r\n\r\n` +
-        `${data}\r\n` +
-        `--${boundary}--`;
-
-      res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${gdriveToken}`,
-          'Content-Type': `multipart/related; boundary=${boundary}`
-        },
-        body
-      });
-    }
-
-    if (res.ok) {
-      const now = new Date().toISOString();
-      localStorage.setItem('gdrive_last_backup', now);
-      const el = document.getElementById('gdrive-last-backup');
-      if (el) el.textContent = 'آخر نسخة: ' + new Date(now).toLocaleString('ar-DZ');
-      showToast('✅ تم الحفظ على Google Drive!');
-    } else {
-      const err = await res.json();
-      handleGdriveError(err.error);
-    }
-  } catch (e) {
-    console.error(e);
-    showToast('❌ فشل الاتصال بـ Drive: ' + e.message, true);
-  }
-}
-
-async function gdriveRestore() {
-  if (!gdriveToken) {
-    showToast('⚠️ يرجى ربط Google Drive أولاً', true);
-    return;
-  }
-  showToast('🔄 جاري البحث عن النسخة الاحتياطية...');
-  try {
-    const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_BACKUP_FILENAME}'+and+trashed=false&fields=files(id,name)`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } }
-    );
-    const searchData = await searchRes.json();
-    if (searchData.error) { handleGdriveError(searchData.error); return; }
-    if (!searchData.files || searchData.files.length === 0) {
-      showToast('❌ لا توجد نسخة احتياطية في Drive', true);
-      return;
-    }
-    const fileId = searchData.files[0].id;
-    const fileRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } }
-    );
-    const restored = await fileRes.json();
-    if (restored.sales) {
-      sales = restored.sales;
-      saveData();
-      if (restored.inventory) { inventory = restored.inventory; saveInventory(); }
-      renderDashboard();
-      showToast(`✅ تمت الاستعادة! ${sales.length} مبيعة و ${inventory.length} صنف`);
-    } else {
-      showToast('❌ ملف النسخة الاحتياطية تالف', true);
-    }
-  } catch (e) {
-    console.error(e);
-    showToast('❌ فشل الاتصال بـ Drive: ' + e.message, true);
-  }
-}
-
-function handleGdriveError(err) {
-  if (err && err.code === 401) {
-    gdriveToken = null;
-    localStorage.removeItem('gdrive_token');
-    updateGdriveUI(false);
-    showToast('⚠️ انتهت صلاحية الجلسة — يرجى تسجيل الدخول مجدداً', true);
-  } else {
-    showToast('❌ خطأ في Drive: ' + (err?.message || 'غير معروف'), true);
-  }
-}
-
-// Handle OAuth redirect token
-function handleOAuthRedirect() {
-  const hash = window.location.hash;
-  if (hash && hash.includes('access_token')) {
-    const params = new URLSearchParams(hash.substring(1));
-    const token = params.get('access_token');
-    if (token) {
-      gdriveToken = token;
-      localStorage.setItem('gdrive_token', token);
-      // Clean URL
-      history.replaceState(null, '', window.location.pathname);
-      updateGdriveUI(true);
-      showToast('✅ تم ربط Google Drive بنجاح!');
-      // Auto backup after connect
-      setTimeout(() => gdriveBackupNow(), 1000);
-    }
-  }
-}
-
-// Auto backup wrapper — called after save operations
-function autoBackup() {
-  if (autoBackupEnabled && gdriveToken) {
-    setTimeout(() => gdriveBackupNow(), 500);
-  }
-}
-
-handleOAuthRedirect();
-gdriveInit();
-fingerprintInit();
-// Pre-load calendar month names for calendar page
-if (typeof MONTHS_AR === 'undefined') window.MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-</script>
-
-<!-- Service Worker Registration -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
-</script>
-
-</body>
-</html>
+          inventory = data.inven
