@@ -3043,14 +3043,15 @@ const DEFAULT_PASS = '1234';
 
 function checkPassword() {
   const input = document.getElementById('lockInput').value;
-  const saved = localStorage.getItem('app_password') || DEFAULT_PASS;
-  if (input === saved) {
+  const saved = localStorage.getItem('app_password');
+  const correct = saved ? saved : DEFAULT_PASS;
+  if (input === correct) {
     document.getElementById('lockScreen').classList.add('hidden');
     document.getElementById('lockInput').value = '';
     document.getElementById('lockError').textContent = '';
   } else {
     document.getElementById('lockInput').classList.add('error');
-    document.getElementById('lockError').textContent = '❌ كلمة السر غير صحيحة';
+    document.getElementById('lockError').textContent = '❌ كلمة السر غير صحيحة — الافتراضية: 1234';
     document.getElementById('lockInput').value = '';
     setTimeout(() => document.getElementById('lockInput').classList.remove('error'), 500);
   }
