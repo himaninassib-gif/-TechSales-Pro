@@ -1175,6 +1175,37 @@
 </head>
 <body>
 
+<!-- ACTIVATION SCREEN -->
+<div class="lock-screen" id="activationScreen">
+  <div class="lock-logo">TS</div>
+  <div class="lock-title">TechSales Pro</div>
+  <div class="lock-subtitle">🔑 أدخل كود التفعيل</div>
+
+  <div style="text-align:center;margin-bottom:20px;position:relative;z-index:1">
+    <div style="font-size:13px;color:var(--text-secondary);line-height:1.8">
+      هذا التطبيق يحتاج كود تفعيل<br>تواصل مع المطور للحصول على الكود
+    </div>
+  </div>
+
+  <div class="lock-input-wrap">
+    <input type="text" class="lock-input" id="activationInput" placeholder="XXXX-XXXX" maxlength="9"
+      style="letter-spacing:4px;text-transform:uppercase"
+      onkeydown="if(event.key==='Enter') checkActivation()"
+      oninput="this.value=this.value.toUpperCase();this.classList.remove('error')">
+    <span class="lock-eye" onclick="toggleActivationEye(this)">👁️</span>
+  </div>
+
+  <button class="lock-btn" onclick="checkActivation()">✅ تفعيل التطبيق</button>
+  <div class="lock-error" id="activationError"></div>
+
+  <div style="margin-top:24px;position:relative;z-index:1;text-align:center">
+    <div style="font-size:11px;color:var(--text-muted);line-height:1.8">
+      📞 للتواصل مع المطور<br>
+      <strong style="color:var(--accent)">TechSales Pro v1.0</strong>
+    </div>
+  </div>
+</div>
+
 <!-- LOCK SCREEN -->
 <div class="lock-screen" id="lockScreen">
   <div class="lock-logo">TS</div>
@@ -1533,6 +1564,25 @@
     </div>
 
     <div style="padding: 16px 20px 0;">
+
+      <div class="section-title">🔑 الترخيص</div>
+      <div class="settings-group">
+        <div class="settings-item">
+          <div class="settings-icon">✅</div>
+          <div class="settings-info">
+            <div class="settings-label">حالة التفعيل</div>
+            <div class="settings-desc" id="activationStatus">مفعّل</div>
+          </div>
+        </div>
+        <div class="settings-item" onclick="deactivateApp()">
+          <div class="settings-icon">🔒</div>
+          <div class="settings-info">
+            <div class="settings-label" style="color:var(--accent-red)">إلغاء التفعيل</div>
+            <div class="settings-desc">إعادة التطبيق لشاشة الترخيص</div>
+          </div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
 
       <div class="section-title">🔒 الأمان</div>
       <div class="settings-group">
@@ -3038,6 +3088,215 @@ async function loginWithFingerprint() {
   }
 }
 
+// ===== ACTIVATION SYSTEM - ANNUAL SUBSCRIPTION WITH DEVICE LOCK =====
+const JSONBIN_KEY = '$2a$10$pj2lgWG7a3deAxNBB7b0Eel/S85s2NbVbNXmN5iyUf8CIyQ2yStQW';
+const JSONBIN_BIN_ID_KEY = 'techsales_bin_id';
+
+const VALID_CODES = {
+  'TECH-2024': null,
+  'SALE-0001': null,
+  'SALE-0002': null,
+  'SALE-0003': null,
+  'SALE-0004': null,
+  'SALE-0005': null,
+  'PRO-PLUS1': null,
+  'PRO-PLUS2': null,
+  'NASSIB-001': null,
+  'NASSIB-002': null,
+  'HAMANI-01': null,
+};
+
+// Generate unique device fingerprint
+function getDeviceId() {
+  let deviceId = localStorage.getItem('device_id');
+  if (!deviceId) {
+    deviceId = 'DEV-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2,9).toUpperCase();
+    localStorage.setItem('device_id', deviceId);
+  }
+  return deviceId;
+}
+
+function generateExpiryDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString();
+}
+
+async function getBinId() {
+  return localStorage.getItem(JSONBIN_BIN_ID_KEY);
+}
+
+async function createBin(data) {
+  try {
+    const res = await fetch('https://api.jsonbin.io/v3/b', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY,
+        'X-Bin-Name': 'TechSales-Activations',
+        'X-Bin-Private': 'true'
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (result.metadata?.id) {
+      localStorage.setItem(JSONBIN_BIN_ID_KEY, result.metadata.id);
+      return result.metadata.id;
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function readActivations() {
+  const binId = await getBinId();
+  if (!binId) return {};
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    const result = await res.json();
+    return result.record || {};
+  } catch(e) { return {}; }
+}
+
+async function writeActivations(data) {
+  let binId = await getBinId();
+  if (!binId) {
+    binId = await createBin(data);
+    return !!binId;
+  }
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify(data)
+    });
+    return true;
+  } catch(e) { return false; }
+}
+
+async function initActivation() {
+  const activated = localStorage.getItem('app_activated');
+  const savedCode = localStorage.getItem('app_activation_code');
+  const expiry = localStorage.getItem('app_expiry');
+  const deviceId = getDeviceId();
+
+  if (activated === 'true' && savedCode && savedCode in VALID_CODES) {
+    if (expiry) {
+      const daysLeft = Math.ceil((new Date(expiry) - new Date()) / (1000 * 60 * 60 * 24));
+      if (daysLeft <= 0) {
+        clearActivation();
+        document.getElementById('activationScreen').classList.remove('hidden');
+        document.getElementById('activationError').textContent = '⚠️ انتهى اشتراكك — يرجى التجديد';
+        return;
+      }
+      if (daysLeft <= 30) setTimeout(() => showToast(`⚠️ اشتراكك ينتهي خلال ${daysLeft} يوم!`), 2000);
+      const statusEl = document.getElementById('activationStatus');
+      if (statusEl) {
+        statusEl.textContent = `✅ مفعّل — متبقي ${daysLeft} يوم`;
+        statusEl.style.color = daysLeft <= 30 ? 'var(--accent-yellow)' : 'var(--accent3)';
+      }
+    }
+    document.getElementById('activationScreen').classList.add('hidden');
+  } else {
+    clearActivation();
+    document.getElementById('activationScreen').classList.remove('hidden');
+  }
+}
+
+function clearActivation() {
+  localStorage.removeItem('app_activated');
+  localStorage.removeItem('app_activation_code');
+  localStorage.removeItem('app_expiry');
+}
+
+async function checkActivation() {
+  const input = document.getElementById('activationInput').value.trim().toUpperCase();
+  const deviceId = getDeviceId();
+
+  if (!input) {
+    document.getElementById('activationInput').classList.add('error');
+    document.getElementById('activationError').textContent = '❌ أدخل كود التفعيل';
+    return;
+  }
+
+  if (!(input in VALID_CODES)) {
+    document.getElementById('activationInput').classList.add('error');
+    document.getElementById('activationError').textContent = '❌ كود التفعيل غير صحيح';
+    document.getElementById('activationInput').value = '';
+    setTimeout(() => document.getElementById('activationInput').classList.remove('error'), 500);
+    return;
+  }
+
+  // Show loading
+  document.getElementById('activationError').textContent = '⏳ جاري التحقق...';
+  document.getElementById('activationError').style.color = 'var(--accent)';
+
+  try {
+    const activations = await readActivations();
+
+    if (activations[input]) {
+      // Code already used
+      if (activations[input].deviceId === deviceId) {
+        // Same device — allow
+        const expiry = activations[input].expiry;
+        const daysLeft = Math.ceil((new Date(expiry) - new Date()) / (1000 * 60 * 60 * 24));
+        if (daysLeft <= 0) {
+          document.getElementById('activationError').textContent = '❌ انتهى اشتراكك — تواصل مع المطور للتجديد';
+          document.getElementById('activationError').style.color = 'var(--accent-red)';
+          return;
+        }
+        localStorage.setItem('app_activated', 'true');
+        localStorage.setItem('app_activation_code', input);
+        localStorage.setItem('app_expiry', expiry);
+        document.getElementById('activationScreen').classList.add('hidden');
+        showToast(`✅ مرحباً! متبقي ${daysLeft} يوم`);
+      } else {
+        // Different device — blocked
+        document.getElementById('activationInput').classList.add('error');
+        document.getElementById('activationError').textContent = '❌ هذا الكود مستخدم على جهاز آخر — تواصل مع المطور';
+        document.getElementById('activationError').style.color = 'var(--accent-red)';
+        document.getElementById('activationInput').value = '';
+      }
+    } else {
+      // New activation
+      const expiry = generateExpiryDate();
+      activations[input] = { deviceId, expiry, activatedAt: new Date().toISOString() };
+      await writeActivations(activations);
+      localStorage.setItem('app_activated', 'true');
+      localStorage.setItem('app_activation_code', input);
+      localStorage.setItem('app_expiry', expiry);
+      document.getElementById('activationScreen').classList.add('hidden');
+      showToast('✅ تم التفعيل! الاشتراك صالح لسنة كاملة 🎉');
+    }
+  } catch(e) {
+    // Offline fallback — allow if code is valid
+    const expiry = generateExpiryDate();
+    localStorage.setItem('app_activated', 'true');
+    localStorage.setItem('app_activation_code', input);
+    localStorage.setItem('app_expiry', expiry);
+    document.getElementById('activationScreen').classList.add('hidden');
+    showToast('✅ تم التفعيل (وضع غير متصل)');
+  }
+}
+
+function toggleActivationEye(el) {
+  const input = document.getElementById('activationInput');
+  if (input.type === 'text') { input.type = 'password'; el.textContent = '👁️'; }
+  else { input.type = 'text'; el.textContent = '🙈'; }
+}
+
+async function deactivateApp() {
+  if (confirm('هل تريد إلغاء تفعيل التطبيق؟')) {
+    clearActivation();
+    showToast('🔒 تم إلغاء التفعيل');
+    setTimeout(() => location.reload(), 1000);
+  }
+}
+
 // ===== LOCK SCREEN =====
 const DEFAULT_PASS = '1234';
 
@@ -4454,6 +4713,7 @@ gdriveInit();
 fingerprintInit();
 initUsername();
 initPrinter();
+initActivation();
 // Pre-load calendar month names for calendar page
 if (typeof MONTHS_AR === 'undefined') window.MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 </script>
