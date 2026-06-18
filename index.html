@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TechSales Pro">
+<meta name="description" content="تطبيق إدارة مبيعات الحواسيب الاحترافي">
+<link rel="manifest" href="manifest.json">
+<title>TechSales Pro — إدارة مبيعات الحواسيب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #070c1a;
+    --bg-secondary: #0d1528;
+    --bg-card: #111827;
+    --bg-card2: #0f1c35;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --accent-red: #ef4444;
+    --accent-yellow: #f59e0b;
+    --text-primary: #f0f6ff;
+    --text-secondary: #8ba3c7;
+    --text-muted: #4a6080;
+    --border: #1e3050;
+    --border-glow: rgba(0,212,255,0.3);
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    direction: rtl;
+  }
+
+  /* Background Grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== TOP BAR ===== */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(7,12,26,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 0 20px rgba(0,212,255,0.3);
+  }
+
+  .logo-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+  }
+
+  .topbar-date {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ===== MAIN CONTENT ===== */
+  .content {
+    position: relative;
+    z-index: 1;
+    padding: 0 0 100px 0;
+  }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(7,12,26,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-family: 'Cairo', sans-serif;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: var(--radius-sm);
+  }
+
+  .nav-btn .nav-icon { font-size: 22px; transition: all 0.2s; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn.active .nav-icon { text-shadow: 0 0 12px var(--accent); transform: translateY(-2px); }
+
+  /* ===== PAGES ===== */
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== DASHBOARD ===== */
+  .dashboard-header {
+    padding: 20px 20px 0;
+  }
+
+  .greeting {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+
+  .greeting-title {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--text-primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .kpi-card:active { transform: scale(0.97); }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi-card.blue::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card.purple::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .kpi-card.green::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .kpi-card.yellow::before { background: linear-gradient(90deg, var(--accent-yellow), transparent); }
+
+  .kpi-icon { font-size: 24px; margin-bottom: 8px; }
+  .kpi-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .kpi-value { font-size: 20px; font-weight: 700; font-family: 'Rajdhani', sans-serif; }
+  .kpi-card.blue .kpi-value { color: var(--accent); }
+  .kpi-card.purple .kpi-value { color: #a78bfa; }
+  .kpi-card.green .kpi-value { color: var(--accent3); }
+  .kpi-card.yellow .kpi-value { color: var(--accent-yellow); }
+
+  /* Section Title */
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    padding: 4px 20px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Recent Sales */
+  .recent-list {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sale-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .sale-item:active { transform: scale(0.98); border-color: var(--accent); }
+
+  .sale-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    background: var(--bg-card2);
+  }
+
+  .sale-info { flex: 1; min-width: 0; }
+  .sale-product { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sale-customer { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .sale-amounts { text-align: left; flex-shrink: 0; }
+  .sale-price { font-size: 14px; font-weight: 700; font-family: 'Rajdhani', sans-serif; color: var(--accent); }
+  .sale-profit { font-size: 11px; color: var(--accent3); }
+
+  /* ===== ADD SALE PAGE ===== */
+  .form-container {
+    padding: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .form-input, .form-select {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 14px;
+    color: var(--text-primary);
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    direction: rtl;
+  }
+
+  .form-input:focus, .form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
+  }
+
+  .form-input::placeholder { color: var(--text-muted); }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Profit Preview */
+  .profit-preview {
+    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(0,212,255,0.05));
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+  }
+
+  .pp-item {}
+  .pp-label { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+  .pp-value { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; }
+  .pp-value.green { color: var(--accent3); }
+  .pp-value.blue { color: var(--accent); }
+  .pp-value.yellow { color: var(--accent-yellow); }
+
+  /* Submit Button */
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: var(--radius);
+    color: white;
+    font-family: 'Cairo', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: 'Cairo', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:active { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== SALES LIST PAGE ===== */
+  .filter-bar {
+    padding: 16px 20px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-family: 'Cairo', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-chip.active {
+    background: rgba(0,212,255,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .search-bar {
+    padding: 0 20px 12px;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 25px;
+    padding: 11px 16px 11px 44px;
+    color: var(--text-primary);
+    font-family: 'Cairo', sans-serif;
+    font-size: 13px;
+    outline: none;
+    direction: rtl;
+    position: relative;
+  }
+
+  .search-wrapper {
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  .sales-list-container {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sale-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+
+  .sale-card-header {
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .sale-card:active { border-color: var(--accent); }
+
+  .sale-card-body {
+    padding: 0 14px 14px;
+    display: none;
+    border-top: 1px solid var(--border);
+    animation: fadeIn 0.2s;
+  }
+
+  .sale-card-body.open { display: block; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding-top: 14px;
+  }
+
+  .detail-item {}
+  .detail-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+  .detail-value { font-size: 13px; font-weight: 600; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .badge-green { background: rgba(16,185,129,0.15); color: var(--accent3); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-blue { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.3); }
+  .badge-red { background: rgba(239,68,68,0.1); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-icon {
+    flex: 1;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-card2);
+    color: var(--text-secondary);
+    font-family: 'Cairo', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s;
+  }
+
+  .btn-icon.danger { color: var(--accent-red); border-color: rgba(239,68,68,0.3); }
+  .btn-icon.danger:active { background: rgba(239,68,68,0.1); }
+
+  /* ===== REPORTS PAGE ===== */
+  .report-section {
+    padding: 0 20px 16px;
+  }
+
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .bar-label { font-size: 11px; color: var(--text-muted); width: 80px; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 8px; background: var(--bg-card2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .bar-fill.blue { background: linear-gradient(90deg, var(--accent), #0066ff); }
+  .bar-fill.green { background: linear-gradient(90deg, var(--accent3), #059669); }
+  .bar-fill.purple { background: linear-gradient(90deg, var(--accent2), #6d28d9); }
+  .bar-value { font-size: 11px; color: var(--text-primary); font-family: 'Rajdhani', sans-serif; font-weight: 600; width: 60px; flex-shrink: 0; }
+
+  /* Top Products */
+  .top-product-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .top-product-item:last-child { border-bottom: none; }
+
+  .rank-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Rajdhani', sans-serif;
+    flex-shrink: 0;
+  }
+
+  .rank-1 { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+  .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: white; }
+  .rank-3 { background: linear-gradient(135deg, #b45309, #92400e); color: white; }
+  .rank-other { background: var(--bg-card2); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .tp-info { flex: 1; }
+  .tp-name { font-size: 13px; font-weight: 600; }
+  .tp-count { font-size: 11px; color: var(--text-muted); }
+  .tp-revenue { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: var(--accent); font-size: 15px; }
+
+  /* Summary Stats */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .stat-mini {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 10px;
+    text-align: center;
+  }
+
+  .stat-mini-val { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; }
+  .stat-mini-lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ===== SETTINGS PAGE ===== */
+  .settings-section {
+    padding: 0 20px;
+  }
+
+  .settings-group {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .settings-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+    gap: 12px;
+  }
+
+  .settings-item:last-child { border-bottom: none; }
+  .settings-item:active { background: rgba(0,212,255,0.05); }
+
+  .settings-icon { font-size: 20px; width: 36px; text-align: center; }
+  .settings-info { flex: 1; }
+  .settings-label { font-size: 14px; font-weight: 600; }
+  .settings-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .settings-arrow { color: var(--text-muted); font-size: 12px; }
+
+  /* Toggle */
+  .toggle-switch {
+    width: 44px;
+    height: 24px;
+    background: var(--bg-card2);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch.on { background: rgba(0,212,255,0.3); border-color: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    top: 2px;
+    right: 2px;
+    transition: all 0.3s;
+  }
+
+  .toggle-switch.on::after {
+    right: auto;
+    left: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(16,185,129,0.9);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 999;
+    opacity: 0;
+    transition: all 0.3s;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast.error { background: rgba(239,68,68,0.9); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg-secondary);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    animation: slideUp 0.3s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-text { font-size: 14px; }
+
+  /* Page Header */
+  .page-header {
+    padding: 20px 20px 0;
+    margin-bottom: 4px;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Number input dir fix */
+  input[type="number"] { direction: ltr; text-align: right; }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+  /* Install banner */
+  .install-banner {
+    margin: 16px 20px 0;
+    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(0,212,255,0.1));
+    border: 1px solid rgba(124,58,237,0.4);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .install-banner-text { flex: 1; font-size: 12px; color: var(--text-secondary); }
+  .install-banner-text strong { color: var(--text-primary); font-size: 13px; display: block; margin-bottom: 2px; }
+
+  .btn-install {
+    padding: 8px 14px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: var(--radius-sm);
+    color: white;
+    font-family: 'Cairo', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .currency-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  /* ===== LOCK SCREEN ===== */
+  .lock-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-primary);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 30px;
+  }
+  .lock-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .lock-logo { width:72px;height:72px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;font-family:'Rajdhani',sans-serif;color:white;box-shadow:0 0 30px rgba(0,212,255,0.4);position:relative;z-index:1;margin-bottom:20px; }
+  .lock-title { font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;background:linear-gradient(90deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;position:relative;z-index:1;margin-bottom:8px; }
+  .lock-subtitle { font-size:13px;color:var(--text-muted);margin-bottom:32px;position:relative;z-index:1; }
+  .lock-input-wrap { width:100%;max-width:300px;position:relative;z-index:1;margin-bottom:14px; }
+  .lock-input { width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:15px 50px 15px 16px;color:var(--text-primary);font-family:'Cairo',sans-serif;font-size:18px;letter-spacing:8px;outline:none;transition:all 0.2s;text-align:center;direction:ltr; }
+  .lock-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.15); }
+  .lock-input.error { border-color:var(--accent-red);box-shadow:0 0 0 3px rgba(239,68,68,0.15);animation:shake 0.4s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .lock-eye { position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;cursor:pointer;color:var(--text-muted); }
+  .lock-btn { width:100%;max-width:300px;padding:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius);color:white;font-family:'Cairo',sans-serif;font-size:16px;font-weight:700;cursor:pointer;position:relative;z-index:1;box-shadow:0 4px 20px rgba(0,212,255,0.3);transition:all 0.2s; }
+  .lock-btn:active { transform:scale(0.97); }
+  .lock-error { color:var(--accent-red);font-size:12px;margin-top:8px;position:relative;z-index:1;min-height:18px;text-align:center; }
+  .lock-hint { font-size:11px;color:var(--text-muted);margin-top:24px;position:relative;z-index:1;text-align:center;line-height:1.8; }
+  .lock-screen.hidden { display:none; }
+
+  /* AI cards */
+  .ai-insight {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    border-right: 3px solid var(--accent);
+  }
+  .ai-insight.warning { border-right-color: var(--accent-yellow); }
+  .ai-insight.success { border-right-color: var(--accent3); }
+  .ai-insight.danger { border-right-color: var(--accent-red); }
+  .ai-insight-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .ai-insight-body { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+
+  /* Inventory Picker */
+  .inv-pick-card {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+
+  .inv-pick-card:active,
+  .inv-pick-card.selected {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.08);
+    box-shadow: 0 0 0 2px rgba(0,212,255,0.2);
+  }
+
+  .inv-pick-card.out-of-stock {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .inv-pick-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(0,212,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .inv-pick-info { flex: 1; min-width: 0; }
+  .inv-pick-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inv-pick-specs { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .inv-pick-price { font-size: 12px; color: var(--accent); margin-top: 2px; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
+
+  .inv-pick-qty {
+    flex-shrink: 0;
+    text-align: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .inv-pick-qty .qty-num { font-size: 18px; display: block; }
+  .inv-pick-qty .qty-lbl { font-size: 9px; color: var(--text-muted); font-family: 'Cairo', sans-serif; }
+
+  .inv-empty-msg {
+    text-align: center;
+    padding: 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    background: var(--bg-card2);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+  }
+
+  .supp-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .supp-avatar { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg,rgba(249,115,22,0.2),rgba(249,115,22,0.05)); border: 1px solid rgba(249,115,22,0.3); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .supp-info { flex: 1; min-width: 0; }
+  .supp-name { font-weight: 700; font-size: 14px; }
+  .supp-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+</style>
+</head>
+
+<body>
+  <!-- LOCK SCREEN -->
+  <div class="lock-screen">
+    <div class="lock-logo">🔐</div>
+    <div class="lock-title">TechSales Pro</div>
+    <div class="lock-subtitle">أدخل رمز الفتح</div>
+    <div class="lock-input-wrap">
+      <span class="lock-eye">👁️‍🗨️</span>
+      <input type="password" class="lock-input" placeholder="••••" maxlength="4">
+    </div>
+    <button class="lock-btn">فتح التطبيق</button>
+    <div class="lock-error"></div>
+    <div class="lock-hint">الرمز الافتراضي: <strong>1234</strong></div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">💼</div>
+      <div class="logo-text">TechSales Pro</div>
+    </div>
+    <div class="topbar-date">-</div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page active">
+      <div class="dashboard-header">
+        <div class="greeting">مرحباً!</div>
+        <div class="greeting-title">إحصائيات اليوم</div>
+      </div>
+      <div class="kpi-grid" id="dashboard-kpis">
+        <div class="kpi-card blue">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-label">المبيعات</div>
+          <div class="kpi-value">0</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-label">الإيرادات</div>
+          <div class="kpi-value">0</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-label">الأرباح</div>
+          <div class="kpi-value">0</div>
+        </div>
+        <div class="kpi-card yellow">
+          <div class="kpi-icon">📍</div>
+          <div class="kpi-label">متوسط الطلب</div>
+          <div class="kpi-value">0</div>
+        </div>
+      </div>
+      <div class="section-title">📋 آخر المبيعات</div>
+      <div class="recent-list" id="recent-sales-list"></div>
+    </div>
+
+    <!-- ADD SALE PAGE -->
+    <div id="page-add" class="page">
+      <div class="form-container">
+        <div class="page-header">
+          <div class="page-title">إضافة مبيعة جديدة</div>
+          <div class="page-subtitle">تسجيل مبيعة جديدة وحساب الربح</div>
+        </div>
+        <form id="add-sale-form">
+          <div class="form-group">
+            <label class="form-label">🛍️ اختر المنتج</label>
+            <select name="productId" class="form-select" required>
+              <option value="">جاري التحميل...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">👤 اختر العميل</label>
+            <select name="customerId" class="form-select" required>
+              <option value="">جاري التحميل...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">📦 الكمية</label>
+            <input type="number" name="quantity" class="form-input" placeholder="أدخل الكمية" required min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📝 ملاحظات</label>
+            <textarea name="notes" class="form-input" placeholder="أضف ملاحظات" rows="3"></textarea>
+          </div>
+          <div class="profit-preview">
+            <div class="pp-item"><div class="pp-label">التكلفة</div><div class="pp-value yellow">-</div></div>
+            <div class="pp-item"><div class="pp-label">البيع</div><div class="pp-value blue">-</div></div>
+            <div class="pp-item"><div class="pp-label">الربح</div><div class="pp-value green">-</div></div>
+            <div class="pp-item"><div class="pp-label">الهامش</div><div class="pp-value">-</div></div>
+          </div>
+          <button type="submit" class="btn-primary">✅ تأكيد المبيعة</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- SALES LIST PAGE -->
+    <div id="page-sales" class="page">
+      <div class="page-header">
+        <div class="page-title">المبيعات</div>
+        <div class="page-subtitle">قائمة جميع المبيعات والتفاصيل</div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-chip active" data-filter="all">📊 الكل</div>
+        <div class="filter-chip" data-filter="today">📅 اليوم</div>
+        <div class="filter-chip" data-filter="week">📈 الأسبوع</div>
+        <div class="filter-chip" data-filter="month">📆 الشهر</div>
+      </div>
+      <div class="search-bar">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" placeholder="ابحث عن منتج أو عميل...">
+        </div>
+      </div>
+      <div class="sales-list-container" id="sales-list-container">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-text">لا توجد مبيعات</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS PAGE -->
+    <div id="page-reports" class="page">
+      <div class="page-header">
+        <div class="page-title">التقارير</div>
+        <div class="page-subtitle">إحصائيات وتحليلات المبيعات</div>
+      </div>
+      <div class="report-section">
+        <div class="chart-card">
+          <div class="chart-title">🏆 أفضل المنتجات</div>
+          <div id="top-products-list">
+            <div style="text-align:center;padding:20px;color:var(--text-muted);">جاري التحميل...</div>
+          </div>
+        </div>
+      </div>
+      <div class="report-section">
+        <div class="chart-card">
+          <div class="chart-title">👥 أفضل العملاء</div>
+          <div id="top-customers-list">
+            <div style="text-align:center;padding:20px;color:var(--text-muted);">جاري التحميل...</div>
+          </div>
+        </div>
+      </div>
+      <div class="report-section">
+        <div class="chart-card">
+          <div class="chart-title">📊 الإحصائيات اليومية</div>
+          <div class="bar-chart">
+            <div id="daily-stats-chart">
+              <div style="text-align:center;padding:20px;color:var(--text-muted);">جاري التحميل...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="page">
+      <div class="page-header">
+        <div class="page-title">الإعدادات</div>
+        <div class="page-subtitle">خيارات التطبيق والحساب</div>
+      </div>
+      <div class="settings-section" style="padding-top:16px;">
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="settings-icon">🌙</div>
+            <div class="settings-info">
+              <div class="settings-label">الوضع المظلم</div>
+              <div class="settings-desc">تفعيل الوضع المظلم</div>
+            </div>
+            <div class="toggle-switch on"></div>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon">🔒</div>
+            <div class="settings-info">
+              <div class="settings-label">القفل التلقائي</div>
+              <div class="settings-desc">قفل التطبيق عند إغلاقه</div>
+            </div>
+            <div class="toggle-switch on"></div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-item" id="btn-update-pin">
+            <div class="settings-icon">🔐</div>
+            <div class="settings-info">
+              <div class="settings-label">تحديث الرمز السري</div>
+              <div class="settings-desc">غير رمز فتح التطبيق</div>
+            </div>
+            <div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item" id="btn-lock">
+            <div class="settings-icon">🔑</div>
+            <div class="settings-info">
+              <div class="settings-label">قفل التطبيق الآن</div>
+              <div class="settings-desc">قفل التطبيق فوراً</div>
+            </div>
+            <div class="settings-arrow">›</div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-item" id="btn-export">
+            <div class="settings-icon">📤</div>
+            <div class="settings-info">
+              <div class="settings-label">تصدير البيانات</div>
+              <div class="settings-desc">حفظ البيانات في ملف</div>
+            </div>
+            <div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item" id="btn-import">
+            <div class="settings-icon">📥</div>
+            <div class="settings-info">
+              <div class="settings-label">استيراد البيانات</div>
+              <div class="settings-desc">تحميل بيانات من ملف</div>
+            </div>
+            <div class="settings-arrow">›</div>
+          </div>
+          <div class="settings-item" id="btn-clear-data">
+            <div class="settings-icon">🗑️</div>
+            <div class="settings-info">
+              <div class="settings-label">حذف جميع البيانات</div>
+              <div class="settings-desc">محو البيانات بشكل نهائي</div>
+            </div>
+            <div class="settings-arrow">›</div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="settings-icon">ℹ️</div>
+            <div class="settings-info">
+              <div class="settings-label">عن التطبيق</div>
+              <div class="settings-desc">TechSales Pro v1.0</div>
+            </div>
+            <div class="settings-arrow">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div id="alerts-container" style="padding:0 20px 16px;"></div>
+
+    <!-- MODAL -->
+    <div class="modal-overlay">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title">التفاصيل</div>
+        <div id="modal-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" data-page="dashboard">
+      <div class="nav-icon">📊</div>
+      <div>لوحة التحكم</div>
+    </button>
+    <button class="nav-btn" data-page="add">
+      <div class="nav-icon">➕</div>
+      <div>إضافة</div>
+    </button>
+    <button class="nav-btn" data-page="sales">
+      <div class="nav-icon">📋</div>
+      <div>المبيعات</div>
+    </button>
+    <button class="nav-btn" data-page="reports">
+      <div class="nav-icon">📈</div>
+      <div>التقارير</div>
+    </button>
+    <button class="nav-btn" data-page="settings">
+      <div class="nav-icon">⚙️</div>
+      <div>الإعدادات</div>
+    </button>
+  </div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script src="form-handler.js"></script>
+  <script src="ui-controller.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="analytics.js"></script>
+</body>
+</html>
